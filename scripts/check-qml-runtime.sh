@@ -4,6 +4,7 @@ set -euo pipefail
 script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd -P)
 project_root=$(CDPATH='' cd -- "$script_dir/.." && pwd -P)
 omarchy_sha=981274b20af8e85c09845071ac33c6230909f119
+[[ $omarchy_sha =~ ^[0-9a-f]{40}$ ]]
 work=$(mktemp -d /tmp/premonition-qml.XXXXXX)
 qs_pid=
 
@@ -17,7 +18,9 @@ if [[ -n ${OMARCHY_PATH-} ]]; then
   upstream=$(CDPATH='' cd -- "$OMARCHY_PATH" && pwd -P)
 else
   upstream=$work/omarchy
-  git clone --filter=blob:none --no-checkout https://github.com/omacom/omarchy.git "$upstream"
+  git init "$upstream"
+  git -C "$upstream" remote add origin https://github.com/omacom/omarchy.git
+  git -C "$upstream" fetch --depth=1 origin "$omarchy_sha"
   git -C "$upstream" checkout --detach "$omarchy_sha"
 fi
 [[ $(git -C "$upstream" rev-parse HEAD) == "$omarchy_sha" ]]
