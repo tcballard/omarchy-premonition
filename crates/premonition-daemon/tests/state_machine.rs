@@ -5,12 +5,14 @@ use std::future::Future;
 use std::path::{Path, PathBuf};
 use std::pin::Pin;
 use std::process::Command;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex as StdMutex};
 use std::time::Duration;
 
 use premonition_core::{ApplyEngine, SafetyCore};
 use premonition_daemon::Service;
-use premonition_executor::{AgentExecutor, Cancellation, Candidate, ExecutorError, Provenance};
+use premonition_executor::{
+    AgentExecutor, Cancellation, Candidate, ExecutorError, Provenance, ReasoningEffort,
+};
 use premonition_protocol::{
     CONTRACT_VERSION, EmptyParams, ErrorCode, Operation, ProposalParams, Request, Response,
     ResultPayload, SafeId, ServiceState, SubmitParams,
@@ -27,6 +29,13 @@ struct Fixture {
 
 impl Fixture {
     fn new(delay: Duration) -> Self {
+        Self::with_executor(Arc::new(FakeExecutor {
+            delay,
+            provenance: fake_provenance(),
+        }))
+    }
+
+    fn with_executor(executor: Arc<dyn AgentExecutor>) -> Self {
         let temporary = tempfile::tempdir().expect("tempdir");
         let repository = temporary.path().join("repo");
         fs::create_dir(&repository).expect("repository");
@@ -50,13 +59,6 @@ impl Fixture {
         .expect("config");
         let core = SafetyCore::load(&config).expect("core");
         let apply = ApplyEngine::new(&temporary.path().join("state")).expect("apply");
-        let executor: Arc<dyn AgentExecutor> = Arc::new(FakeExecutor {
-            delay,
-            provenance: Provenance {
-                version: "fake 1".into(),
-                sha256: "0".repeat(64),
-            },
-        });
         let service = Service::new(core, apply, Some(executor)).expect("service");
         Self {
             _temporary: temporary,
@@ -66,9 +68,70 @@ impl Fixture {
     }
 }
 
+fn fake_provenance() -> Provenance {
+    Provenance {
+        version: "fake 1".into(),
+        sha256: "0".repeat(64),
+        model: "gpt-5.6-sol".into(),
+    }
+}
+
 struct FakeExecutor {
     delay: Duration,
     provenance: Provenance,
+}
+
+struct EscalatingExecutor {
+    efforts: Arc<StdMutex<Vec<ReasoningEffort>>>,
+    provenance: Provenance,
+}
+
+impl AgentExecutor for EscalatingExecutor {
+    fn investigate<'a>(
+        &'a self,
+        _repository: &'a Path,
+        _observed_error: &'a str,
+        effort: ReasoningEffort,
+        _cancellation: Cancellation,
+    ) -> Pin<Box<dyn Future<Output = Result<Candidate, ExecutorError>> + Send + 'a>> {
+        self.efforts.lock().expect("effort lock").push(effort);
+        Box::pin(async move {
+            match effort {
+                ReasoningEffort::Low => {
+                    Candidate::new("not a unified diff".into(), "Low attempt.".into())
+                }
+                ReasoningEffort::Medium => {
+                    Candidate::new(PATCH.into(), "Medium attempt fixed it.".into())
+                }
+            }
+        })
+    }
+
+    fn provenance(&self) -> &Provenance {
+        &self.provenance
+    }
+}
+
+struct FailingExecutor {
+    efforts: Arc<StdMutex<Vec<ReasoningEffort>>>,
+    provenance: Provenance,
+}
+
+impl AgentExecutor for FailingExecutor {
+    fn investigate<'a>(
+        &'a self,
+        _repository: &'a Path,
+        _observed_error: &'a str,
+        effort: ReasoningEffort,
+        _cancellation: Cancellation,
+    ) -> Pin<Box<dyn Future<Output = Result<Candidate, ExecutorError>> + Send + 'a>> {
+        self.efforts.lock().expect("effort lock").push(effort);
+        Box::pin(async { Err(ExecutorError::Crash) })
+    }
+
+    fn provenance(&self) -> &Provenance {
+        &self.provenance
+    }
 }
 
 impl AgentExecutor for FakeExecutor {
@@ -76,6 +139,7 @@ impl AgentExecutor for FakeExecutor {
         &'a self,
         _repository: &'a Path,
         _observed_error: &'a str,
+        _effort: ReasoningEffort,
         cancellation: Cancellation,
     ) -> Pin<Box<dyn Future<Output = Result<Candidate, ExecutorError>> + Send + 'a>> {
         Box::pin(async move {
@@ -236,6 +300,84 @@ async fn cancellation_is_truthful_and_terminal() {
     assert_eq!(
         fs::read_to_string(fixture.repository.join("value.txt")).expect("unchanged"),
         "old\n"
+    );
+}
+
+#[tokio::test]
+async fn invalid_low_candidate_escalates_once_and_records_medium() {
+    let efforts = Arc::new(StdMutex::new(Vec::new()));
+    let fixture = Fixture::with_executor(Arc::new(EscalatingExecutor {
+        efforts: Arc::clone(&efforts),
+        provenance: fake_provenance(),
+    }));
+    let _accepted = fixture
+        .service
+        .handle(request(
+            "submit-escalate",
+            Operation::Submit(SubmitParams {
+                repository_id: id("fixture"),
+                correlation_id: id("corr-escalate"),
+                input: "observed error".into(),
+            }),
+        ))
+        .await;
+    let status = wait_for_state(&fixture.service, ServiceState::Ready).await;
+    let ResultPayload::Status {
+        proposal_id: Some(proposal_id),
+        ..
+    } = status.result.expect("status result")
+    else {
+        panic!("ready proposal missing");
+    };
+    let shown = fixture
+        .service
+        .handle(request(
+            "show-escalated",
+            Operation::ProposalShow(ProposalParams { proposal_id }),
+        ))
+        .await;
+    match shown.result.expect("proposal result") {
+        ResultPayload::Proposal { executor, .. } => {
+            assert_eq!(
+                executor.reasoning_effort,
+                premonition_protocol::ProposalEffort::Medium
+            );
+            assert_eq!(executor.model.as_str(), "gpt-5.6-sol");
+        }
+        _ => panic!("proposal body missing"),
+    }
+    assert_eq!(
+        *efforts.lock().expect("effort lock"),
+        vec![ReasoningEffort::Low, ReasoningEffort::Medium]
+    );
+    assert_eq!(
+        fs::read_to_string(fixture.repository.join("value.txt")).expect("unchanged"),
+        "old\n"
+    );
+}
+
+#[tokio::test]
+async fn runtime_failure_never_escalates() {
+    let efforts = Arc::new(StdMutex::new(Vec::new()));
+    let fixture = Fixture::with_executor(Arc::new(FailingExecutor {
+        efforts: Arc::clone(&efforts),
+        provenance: fake_provenance(),
+    }));
+    let _accepted = fixture
+        .service
+        .handle(request(
+            "submit-fail",
+            Operation::Submit(SubmitParams {
+                repository_id: id("fixture"),
+                correlation_id: id("corr-fail"),
+                input: "observed error".into(),
+            }),
+        ))
+        .await;
+    let _status = wait_for_state(&fixture.service, ServiceState::Error).await;
+    assert_eq!(
+        *efforts.lock().expect("effort lock"),
+        vec![ReasoningEffort::Low]
     );
 }
 

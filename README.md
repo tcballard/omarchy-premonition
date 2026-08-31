@@ -23,7 +23,9 @@ separate gate in issue #7.
 1. You choose an allowlisted repository and explicitly send the current
    selection, clipboard, or stdin text.
 2. The daemon snapshots the repository and starts one read-only Codex CLI
-   investigation with hard input/output/time bounds.
+   investigation with hard input/output/time bounds. It starts at Low effort
+   and permits one Medium retry only after malformed or invalid candidate
+   output; runtime, cancellation, timeout, and repository failures never retry.
 3. A strict textual unified diff is parsed, path-checked, and passed through
    `git apply --check` without changing the working tree.
 4. The panel exposes the proposal and a full-screen plain-text diff review.
@@ -74,6 +76,11 @@ premonition cancel --json
 
 Selection and clipboard reads are one-shot explicit actions. v0.1 does not
 monitor clipboard history.
+
+Explicit proposal review includes bounded content-free executor evidence: the
+canonical tool version and SHA-256, configured model, and the Low or Medium
+effort that produced the validated candidate. Routine status polling excludes
+that evidence as well as patch and source bodies.
 
 ## Evidence
 

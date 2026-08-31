@@ -28,7 +28,7 @@ impl Fixture {
     }
 
     async fn executor(&self, timeout: Duration) -> CodexCliExecutor {
-        CodexCliExecutor::new(fake_agent(), &self.schema, timeout)
+        CodexCliExecutor::new(fake_agent(), &self.schema, "gpt-5.6-sol", timeout)
             .await
             .expect("executor")
     }
@@ -42,6 +42,7 @@ async fn success_is_structured_and_provenanced() {
         .investigate(
             &fixture.repository,
             "ordinary error",
+            premonition_executor::ReasoningEffort::Low,
             Cancellation::default(),
         )
         .await
@@ -53,6 +54,23 @@ async fn success_is_structured_and_provenanced() {
         "premonition-fake-agent 1.0.0"
     );
     assert_eq!(executor.provenance().sha256.len(), 64);
+    assert_eq!(executor.provenance().model, "gpt-5.6-sol");
+}
+
+#[tokio::test]
+async fn medium_effort_is_explicitly_forwarded() {
+    let fixture = Fixture::new();
+    let executor = fixture.executor(Duration::from_secs(2)).await;
+    let candidate = executor
+        .investigate(
+            &fixture.repository,
+            "SCENARIO_REQUIRE_MEDIUM",
+            premonition_executor::ReasoningEffort::Medium,
+            Cancellation::default(),
+        )
+        .await
+        .expect("medium candidate");
+    assert!(candidate.patch().starts_with("diff --git"));
 }
 
 #[tokio::test]
@@ -66,7 +84,12 @@ async fn malformed_hostile_crash_and_overflow_fail_closed() {
         ("SCENARIO_OVERFLOW", ExecutorError::OutputLimit),
     ] {
         let result = executor
-            .investigate(&fixture.repository, scenario, Cancellation::default())
+            .investigate(
+                &fixture.repository,
+                scenario,
+                premonition_executor::ReasoningEffort::Low,
+                Cancellation::default(),
+            )
             .await;
         assert_eq!(result, Err(expected));
     }
@@ -80,10 +103,29 @@ async fn timeout_kills_the_process_group() {
         .investigate(
             &fixture.repository,
             "SCENARIO_TIMEOUT",
+            premonition_executor::ReasoningEffort::Low,
             Cancellation::default(),
         )
         .await;
     assert_eq!(result, Err(ExecutorError::Timeout));
+}
+
+#[tokio::test]
+async fn timeout_kills_descendants_before_they_can_write() {
+    let fixture = Fixture::new();
+    let sentinel = fixture.repository.join("descendant-survived");
+    let executor = fixture.executor(Duration::from_millis(50)).await;
+    let result = executor
+        .investigate(
+            &fixture.repository,
+            "SCENARIO_DESCENDANT",
+            premonition_executor::ReasoningEffort::Low,
+            Cancellation::default(),
+        )
+        .await;
+    assert_eq!(result, Err(ExecutorError::Timeout));
+    tokio::time::sleep(Duration::from_millis(400)).await;
+    assert!(!sentinel.exists());
 }
 
 #[tokio::test]
@@ -97,7 +139,12 @@ async fn cancellation_kills_the_process_group() {
         trigger.cancel();
     });
     let result = executor
-        .investigate(&fixture.repository, "SCENARIO_CANCEL", cancellation)
+        .investigate(
+            &fixture.repository,
+            "SCENARIO_CANCEL",
+            premonition_executor::ReasoningEffort::Low,
+            cancellation,
+        )
         .await;
     assert_eq!(result, Err(ExecutorError::Cancelled));
 }

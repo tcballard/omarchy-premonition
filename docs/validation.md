@@ -8,7 +8,7 @@ SHA-256 `f7507e5042eb970e3dc918bdf6bf251c7557443892a77e71a17d7019ddde72c8`.
 | --- | --- | --- |
 | Format | `cargo fmt --check` | Passed |
 | Lint | `cargo clippy --workspace --all-targets --all-features -- -D warnings` | Passed |
-| Tests | `cargo test --workspace --all-features` | 38 passed |
+| Tests | `cargo test --workspace --all-features` | 42 passed |
 | Documentation | `RUSTDOCFLAGS='-D warnings' cargo doc --workspace --all-features --no-deps` | Passed |
 | Release build | `cargo build --workspace --all-features --release --locked` | Passed |
 | Supply chain | `cargo deny check` | Advisories, bans, licences, and sources passed; one permitted duplicate-version warning |

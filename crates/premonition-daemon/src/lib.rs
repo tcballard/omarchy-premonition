@@ -4,12 +4,16 @@ use std::collections::VecDeque;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use premonition_core::{ApplyEngine, ApplyError, CoreError, SafetyCore, ValidatedProposal};
-use premonition_executor::{AgentExecutor, Cancellation, ExecutorError};
+use premonition_core::{
+    ApplyEngine, ApplyError, CoreError, GenerationContext, SafetyCore, ValidatedProposal,
+};
+use premonition_executor::{
+    AgentExecutor, Cancellation, ExecutorError, Provenance, ReasoningEffort,
+};
 use premonition_protocol::{
-    EmptyParams, ErrorCode, Operation, ProposalParams, RecentOutcome, RecentSummary,
-    RepositorySummary, Request, Response, ResultPayload, SafeId, ServiceState, SubmitParams,
-    WireError,
+    EmptyParams, ErrorCode, ExecutorEvidence, Operation, ProposalEffort, ProposalParams,
+    RecentOutcome, RecentSummary, RepositorySummary, Request, Response, ResultPayload, SafeId,
+    ServiceState, SubmitParams, WireError,
 };
 use sha2::{Digest, Sha256};
 use tokio::sync::Mutex;
@@ -162,15 +166,27 @@ impl Service {
         let correlation_id = parameters.correlation_id.clone();
         let repository_id = parameters.repository_id;
         tokio::spawn(async move {
-            let result = executor
-                .investigate(context.repository_root(), &parameters.input, cancellation)
-                .await;
-            let completion = match result {
-                Ok(candidate) => core
-                    .validate_candidate(context, candidate.patch().to_owned())
-                    .map(|proposal| (proposal, candidate.rationale().to_owned()))
-                    .map_err(JobError::Core),
-                Err(error) => Err(JobError::Executor(error)),
+            let low = attempt(
+                executor.as_ref(),
+                &core,
+                context.clone(),
+                &parameters.input,
+                ReasoningEffort::Low,
+                cancellation.clone(),
+            )
+            .await;
+            let completion = if low.as_ref().is_err_and(retryable_low_failure) {
+                attempt(
+                    executor.as_ref(),
+                    &core,
+                    context,
+                    &parameters.input,
+                    ReasoningEffort::Medium,
+                    cancellation,
+                )
+                .await
+            } else {
+                low
             };
             finish_job(inner, correlation_id, repository_id, completion).await;
         });
@@ -255,6 +271,7 @@ impl Service {
                     rationale: proposal.rationale.clone(),
                     file_count: u16::try_from(proposal.proposal.file_count()).unwrap_or(u16::MAX),
                     created_unix_ms: proposal.created_unix_ms,
+                    executor: proposal.executor.clone(),
                 },
             )
         }
@@ -432,6 +449,7 @@ struct ProposalRecord {
     repository_id: SafeId,
     created_unix_ms: u64,
     rationale: String,
+    executor: ExecutorEvidence,
     proposal: ValidatedProposal,
 }
 
@@ -507,7 +525,7 @@ async fn finish_job(
     inner: Arc<Mutex<Inner>>,
     correlation_id: SafeId,
     repository_id: SafeId,
-    completion: Result<(ValidatedProposal, String), JobError>,
+    completion: Result<(ValidatedProposal, String, ExecutorEvidence), JobError>,
 ) {
     let mut inner = inner.lock().await;
     let matches_active = matches!(
@@ -518,7 +536,7 @@ async fn finish_job(
         return;
     }
     match completion {
-        Ok((proposal, rationale)) => {
+        Ok((proposal, rationale, executor)) => {
             inner.proposal_sequence = inner.proposal_sequence.wrapping_add(1);
             let Ok(proposal_id) =
                 SafeId::new(format!("p-{}-{}", unix_ms(), inner.proposal_sequence))
@@ -536,6 +554,7 @@ async fn finish_job(
                 repository_id,
                 created_unix_ms: unix_ms(),
                 rationale,
+                executor,
                 proposal,
             })));
         }
@@ -584,6 +603,48 @@ async fn finish_job(
             });
         }
     }
+}
+
+async fn attempt(
+    executor: &dyn AgentExecutor,
+    core: &SafetyCore,
+    context: GenerationContext,
+    input: &str,
+    effort: ReasoningEffort,
+    cancellation: Cancellation,
+) -> Result<(ValidatedProposal, String, ExecutorEvidence), JobError> {
+    let candidate = executor
+        .investigate(context.repository_root(), input, effort, cancellation)
+        .await
+        .map_err(JobError::Executor)?;
+    let proposal = core
+        .validate_candidate(context, candidate.patch().to_owned())
+        .map_err(JobError::Core)?;
+    let evidence = evidence(executor.provenance(), effort).map_err(JobError::Executor)?;
+    Ok((proposal, candidate.rationale().to_owned(), evidence))
+}
+
+fn retryable_low_failure(error: &JobError) -> bool {
+    matches!(
+        error,
+        JobError::Executor(ExecutorError::MalformedOutput)
+            | JobError::Core(CoreError::Diff(_) | CoreError::ApplyCheck)
+    )
+}
+
+fn evidence(
+    provenance: &Provenance,
+    effort: ReasoningEffort,
+) -> Result<ExecutorEvidence, ExecutorError> {
+    Ok(ExecutorEvidence {
+        tool_version: provenance.version.clone(),
+        tool_sha256: provenance.sha256.clone(),
+        model: SafeId::new(provenance.model.clone()).map_err(|_| ExecutorError::Configuration)?,
+        reasoning_effort: match effort {
+            ReasoningEffort::Low => ProposalEffort::Low,
+            ReasoningEffort::Medium => ProposalEffort::Medium,
+        },
+    })
 }
 
 fn request_digest(request: &Request) -> [u8; 32] {

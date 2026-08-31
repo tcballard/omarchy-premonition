@@ -121,3 +121,26 @@ Append-only evidence of build stages and verification outcomes.
 - Clean-object packaging built and tested an extracted Git archive, passed the
   dependency policy and pinned validator, verified the bundle checksum, then
   extracted and revalidated the plugin and both executables.
+
+## 2026-08-31 — S2.1 explicit effort and provenance closure
+
+- Status: Complete for issue #3's machine-independent executor criteria.
+- Model/session evidence: product model is explicitly configured as
+  `gpt-5.6-sol`; the builder session model and Session ID were not captured and
+  are not claimed as provenance.
+- Added a closed Low/Medium effort contract. Every submission starts Low and
+  permits exactly one Medium retry only after malformed structured output, an
+  invalid unified diff, or failed applicability. Cancellation, timeout, crash,
+  output overflow, configuration, repository identity, and staleness failures
+  never retry.
+- Added bounded explicit-review evidence for canonical tool version/SHA-256,
+  configured model, and successful effort. Routine status remains content-free.
+- Extended the compiled process fixture to reject missing model/effort argv,
+  prove Medium forwarding, and spawn a descendant that is killed with its
+  process group before it can write.
+- `cargo test --workspace --all-features`: 42 passed.
+- `cargo clippy --workspace --all-targets --all-features -- -D warnings`:
+  passed.
+- Unresolved: live provider inference remains runtime evidence, not a
+  deterministic test dependency. Next entry state: build and run the strongest
+  truthful Quickshell/Omarchy acceptance harness for issue #7.

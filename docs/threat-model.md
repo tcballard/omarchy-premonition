@@ -33,7 +33,9 @@ after explicit Review.
 - Generation captures HEAD, branch identity, index bytes, and bounded
   tracked/untracked worktree metadata and content.
 - Investigation uses one process group, read-only Codex sandboxing, no
-  approvals, strict output schema, time/size ceilings, and cancellation.
+  approvals, an explicit model and Low effort, strict output schema, time/size
+  ceilings, and cancellation. One Medium retry is permitted only for malformed
+  or invalid candidate output; runtime and repository failures never retry.
 - Validation and git apply --check do not modify the repository.
 - Apply rechecks identity, operation state, complete generation snapshot,
   paths, bounds, and applicability.
