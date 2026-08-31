@@ -98,3 +98,20 @@ all content bodies. The next move is live-shell evidence, not more executor
 claims.
 
 Source: BUILDLOG `S2.1 explicit effort and provenance closure`.
+
+## 2026-08-31 — S3.1 compositor evidence boundary
+
+The runtime fixture deliberately uses a real Quickshell process and the actual
+plugin QML rather than simulating component state in JavaScript. A deterministic
+CLI records every argv vector, introduces overlapping-call detection, and emits
+hostile markup-shaped text so the fixture can assert both explicit authority
+and plain-text rendering behaviour.
+
+Headless wlroots is materially stronger evidence than parsing QML: it exercises
+layer-shell windows, focusable controls, process collectors, timers and the
+rendering path, and produces a compositor screenshot. It still cannot establish
+whether Tom finds focus order and interaction correct in his full Omarchy
+desktop. That last human observation stays open and is not renamed into an
+automated claim.
+
+Source: BUILDLOG `S3.1 real Quickshell runtime contract`.
