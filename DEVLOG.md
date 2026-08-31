@@ -39,3 +39,15 @@ Append-only engineering decisions, investigations, and candid limitations.
 - A live Codex inference was not used as deterministic test evidence in this
   environment. Process semantics are exercised with the compiled fixture; the
   installed Codex executable is probed for version/provenance at daemon start.
+
+## 2026-08-31 — service ownership decisions
+
+- The daemon owns the only active proposal and accepts one framed request per
+  owner-credentialed Unix connection. This keeps QML and shell commands outside
+  repository/Git/agent authority.
+- Status and health never include source, rationale, patch, or repository paths.
+  Proposal and copy bodies require explicit operations and are not cached.
+- If Apply journal recovery cannot converge at startup, the service remains in
+  `recovery_required`; only content-free status and health remain available.
+- Clipboard integration is deliberately one-shot in the CLI. There is no
+  watcher, history subscription, or background clipboard access in v0.1.

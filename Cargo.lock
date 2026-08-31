@@ -303,6 +303,7 @@ dependencies = [
  "clap",
  "premonition-protocol",
  "serde_json",
+ "thiserror",
  "tokio",
 ]
 
@@ -322,10 +323,13 @@ dependencies = [
 name = "premonition-daemon"
 version = "0.1.0"
 dependencies = [
+ "clap",
  "premonition-core",
  "premonition-executor",
  "premonition-protocol",
  "serde_json",
+ "sha2",
+ "tempfile",
  "tokio",
 ]
 

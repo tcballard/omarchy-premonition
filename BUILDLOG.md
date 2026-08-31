@@ -64,3 +64,20 @@ Append-only evidence of build stages and verification outcomes.
   hostile terminal text, crash, overflow, timeout, and cancellation.
 - `cargo test -p premonition-executor`: 7 passed; strict all-target Clippy with
   `-D warnings`: passed.
+
+## 2026-08-31 — versioned service and CLI
+
+- Added an owner-only Unix socket with peer-UID checks, strict framed protocol,
+  bounded reads/writes, private socket/state directories, and stale-socket
+  handling.
+- Added the same-UID in-memory state machine with global single-flight,
+  cancellation, content-free status/recent history, request-ID replay checks,
+  bounded terminal history, and explicit review/copy/dismiss/Apply operations.
+- Body-bearing review/copy results are deliberately excluded from the request
+  cache so source/patch data is released when the active proposal is removed.
+- Added the JSON-only CLI with explicit stdin or one-shot clipboard submission;
+  copy writes directly to a canonical clipboard process without printing the
+  patch.
+- Synthetic daemon tests cover single-flight, read-only pre-Apply state,
+  explicit Apply, unchanged Git index, cancellation, and idempotent replay.
+- strict CLI/daemon/executor all-target Clippy with `-D warnings`: passed.

@@ -74,6 +74,23 @@ pub struct Candidate {
 }
 
 impl Candidate {
+    /// Constructs a bounded structured candidate for executor adapters.
+    ///
+    /// # Errors
+    ///
+    /// Rejects empty/oversized bodies and hostile rationale controls.
+    pub fn new(patch: String, rationale: String) -> Result<Self, ExecutorError> {
+        if patch.is_empty()
+            || patch.len() > MAX_PATCH_BYTES
+            || rationale.is_empty()
+            || rationale.len() > MAX_RATIONALE_BYTES
+            || rationale.chars().any(char::is_control)
+        {
+            return Err(ExecutorError::MalformedOutput);
+        }
+        Ok(Self { patch, rationale })
+    }
+
     /// Explicit patch-body access for safety-core validation only.
     #[must_use]
     pub fn patch(&self) -> &str {
@@ -204,6 +221,7 @@ impl CodexCliExecutor {
             ])
             .arg(&self.schema)
             .arg("-")
+            .kill_on_drop(true)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
@@ -358,18 +376,7 @@ fn parse_jsonl(bytes: &[u8]) -> Result<Candidate, ExecutorError> {
     let response: AgentResponse =
         serde_json::from_str(&final_message.ok_or(ExecutorError::MalformedOutput)?)
             .map_err(|_| ExecutorError::MalformedOutput)?;
-    if response.patch.is_empty()
-        || response.patch.len() > MAX_PATCH_BYTES
-        || response.rationale.is_empty()
-        || response.rationale.len() > MAX_RATIONALE_BYTES
-        || response.rationale.chars().any(char::is_control)
-    {
-        return Err(ExecutorError::MalformedOutput);
-    }
-    Ok(Candidate {
-        patch: response.patch,
-        rationale: response.rationale,
-    })
+    Candidate::new(response.patch, response.rationale)
 }
 
 async fn read_bounded<R: AsyncRead + Unpin>(
