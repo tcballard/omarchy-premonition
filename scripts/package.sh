@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
-project_root=$(CDPATH= cd -- "$script_dir/.." && pwd -P)
+script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd -P)
+project_root=$(CDPATH='' cd -- "$script_dir/.." && pwd -P)
 validator=${OMARCHY_VALIDATOR-}
 expected_validator_sha=f7507e5042eb970e3dc918bdf6bf251c7557443892a77e71a17d7019ddde72c8
 omarchy_sha=981274b20af8e85c09845071ac33c6230909f119

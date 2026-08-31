@@ -9,8 +9,8 @@ elif (( $# != 0 )); then
   exit 64
 fi
 
-script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
-project_root=$(CDPATH= cd -- "$script_dir/.." && pwd -P)
+script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd -P)
+project_root=$(CDPATH='' cd -- "$script_dir/.." && pwd -P)
 demo_root=$(mktemp -d /tmp/premonition-demo.XXXXXX)
 daemon_pid=
 
@@ -73,7 +73,7 @@ printf 'a.txt still contains the wrong value: old\n' \
   | "$cli" submit --repo demo --stdin --correlation-id demo-run --json
 
 status=
-for sequence in $(seq 1 100); do
+for _ in $(seq 1 100); do
   status=$("$cli" status --json)
   state_name=$(printf '%s\n' "$status" | jq -r '.result.state // ""')
   [[ $state_name == ready ]] && break
