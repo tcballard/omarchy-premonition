@@ -65,3 +65,17 @@ Append-only engineering decisions, investigations, and candid limitations.
 - The current environment has neither Quickshell nor QML lint tooling. Static
   contract/hostile-text checks and the real pinned manifest validator passed;
   visual/focus/compositor acceptance remains explicitly open.
+
+## 2026-08-31 — S4 evidence boundary
+
+- The demo uses the repository's compiled fake executor, never a fabricated UI
+  state or network model response. It defaults to stopping after proposal
+  review and requires a separate `--apply` invocation to mutate its disposable
+  fixture.
+- Release inputs are assembled only from `git archive HEAD`; packaging refuses
+  a dirty tree, records the commit/tree/toolchain/upstream pins, and extracts
+  and revalidates the resulting archive.
+- The current execution sandbox blocks `AF_UNIX` socket creation at the syscall
+  boundary. This is distinct from Quickshell absence: state-machine tests cover
+  the protocol workflow, while external socket and live compositor evidence
+  remain claims to run in an ordinary Omarchy user session.

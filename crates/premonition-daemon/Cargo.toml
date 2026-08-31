@@ -12,9 +12,9 @@ path = "src/main.rs"
 
 [dependencies]
 clap.workspace = true
-premonition-core = { path = "../premonition-core" }
-premonition-executor = { path = "../premonition-executor" }
-premonition-protocol = { path = "../premonition-protocol" }
+premonition-core = { version = "=0.1.0", path = "../premonition-core" }
+premonition-executor = { version = "=0.1.0", path = "../premonition-executor" }
+premonition-protocol = { version = "=0.1.0", path = "../premonition-protocol" }
 sha2.workspace = true
 serde_json.workspace = true
 tokio.workspace = true

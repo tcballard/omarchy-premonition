@@ -101,3 +101,20 @@ Append-only evidence of build stages and verification outcomes.
   `f7507e5042eb970e3dc918bdf6bf251c7557443892a77e71a17d7019ddde72c8`):
   passed with exit 0 and no diagnostics.
 - Live Quickshell rendering was not available and remains issue #7.
+
+## 2026-08-31 — S4 reproducible evidence
+
+- Added a synthetic repository and compiled fake-agent demonstration that
+  proves validation is read-only, stops before mutation by default, and offers
+  an independently explicit `--apply` continuation.
+- Added a one-command live Omarchy acceptance capture that checks the pinned
+  validator before asking the reviewer to exercise selection, clipboard,
+  review, copy, dismiss, cancel, and Apply interactions.
+- Added an explicit threat model, stable command documentation, dependency and
+  licence policy, credential-pattern check, and pinned CI acceptance recipe.
+- Extended the real Git fixture to preserve a pre-existing unrelated worktree
+  edit across transactional Apply.
+- This container denies Unix socket creation with `EPERM`; the daemon therefore
+  reported its stable content-free bind error and the external socket demo
+  could not run here. The same complete state-machine workflow passes in-process
+  tests. This is recorded as an environment gate, not live acceptance.
