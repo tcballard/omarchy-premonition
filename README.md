@@ -16,7 +16,8 @@ Review candidate for v0.1 targeting Omarchy Quattro at exact commit
 `981274b20af8e85c09845071ac33c6230909f119`. No release has been published and
 the plugin has not been submitted to the marketplace. Machine-independent
 acceptance is tracked in issues #1–#6; live Omarchy/Quickshell acceptance is a
-separate gate in issue #7.
+separate hands-on desktop gate in issue #7. Real Quickshell rendering and the
+full deterministic interaction contract run in CI under headless wlroots.
 
 ## What the workflow does
 

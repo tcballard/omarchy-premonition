@@ -13,6 +13,7 @@ SHA-256 `f7507e5042eb970e3dc918bdf6bf251c7557443892a77e71a17d7019ddde72c8`.
 | Release build | `cargo build --workspace --all-features --release --locked` | Passed |
 | Supply chain | `cargo deny check` | Advisories, bans, licences, and sources passed; one permitted duplicate-version warning |
 | QML/hostile text | `python3 scripts/check-qml.py` | Passed |
+| Quickshell runtime | `./scripts/check-qml-runtime.sh` under headless wlroots | Passed; real QML, official bar contract, explicit actions, hostile text, non-overlapping polling, PNG capture |
 | Credential patterns | `python3 scripts/check-secrets.py` | Passed |
 | Shell syntax | `bash -n scripts/*.sh` | Passed |
 | Plugin contract | `bash "$PINNED_OMARCHY/bin/omarchy-plugin-validate" .` | Passed, no diagnostics |
@@ -37,5 +38,15 @@ SHA-256, extracts it again, and revalidates the plugin and both executables.
 The external Unix-socket demo was attempted and failed before any submission
 because this sandbox denies `AF_UNIX` socket creation with `EPERM`. The daemon
 emitted only `premonitiond: socket bind syscall failed`. Complete protocol and
-Apply behaviour passed through the in-process state-machine suite. Live
-Quickshell acceptance is intentionally not claimed and remains issue #7.
+Apply behaviour passed through the in-process state-machine suite.
+
+GitHub Actions run 9 (`33372810523`) rendered the actual plugin with Quickshell
+0.3.1 on a 1280×720 headless wlroots output against pinned Omarchy, exercised
+selection, clipboard, review, copy, dismiss, Apply, cancellation and every
+truthful state, and uploaded artifact `premonition-quickshell-runtime`
+(`sha256:d667e204076cfc9a5009b9ff1d9642d810816b6c218b5674458e13272535cc5b`).
+The captured PNG SHA-256 is
+`07c735f9e9eccd8915e98dfa2c05b337fcf327c72ee8e1236d083ca9a376e3a3`.
+This is real machine-independent rendering evidence, not hands-on acceptance
+inside a complete current Omarchy/Hyprland desktop. That final observation
+remains issue #7.

@@ -18,8 +18,9 @@ script then verifies the new worktree content and that the Git index remains
 unchanged. The temporary repository is removed on exit.
 
 This is deterministic process/safety evidence, not a claim of live model
-quality or Omarchy rendering. The executor's actual Codex path is separately
-implemented and provenance-probed; live Quickshell acceptance remains issue #7.
+quality. The executor's actual Codex path is separately implemented and
+provenance-probed. Real Quickshell rendering is covered by the CI runtime
+contract; hands-on acceptance in a complete Omarchy desktop remains issue #7.
 
 ## Live Omarchy acceptance
 

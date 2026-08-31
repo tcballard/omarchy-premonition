@@ -144,3 +144,20 @@ Append-only evidence of build stages and verification outcomes.
 - Unresolved: live provider inference remains runtime evidence, not a
   deterministic test dependency. Next entry state: build and run the strongest
   truthful Quickshell/Omarchy acceptance harness for issue #7.
+
+## 2026-08-31 — S3.1 real Quickshell runtime contract
+
+- Loaded the actual `PremonitionSurface.qml` through Quickshell 0.3.1 against
+  pinned Omarchy `981274b20af8e85c09845071ac33c6230909f119` on a headless
+  wlroots compositor; the official upstream bar-widget contract also passed.
+- Exercised all truthful states plus explicit selection, clipboard, Review,
+  Copy patch, Dismiss, Apply and Cancel commands against a bounded deterministic
+  CLI fixture. Verified polling single-flight and literal hostile text.
+- GitHub Actions run 9 (`33372810523`) runtime job passed and uploaded a real
+  1280×720 review-overlay PNG. Artifact digest:
+  `sha256:d667e204076cfc9a5009b9ff1d9642d810816b6c218b5674458e13272535cc5b`;
+  PNG SHA-256:
+  `07c735f9e9eccd8915e98dfa2c05b337fcf327c72ee8e1236d083ca9a376e3a3`.
+- This closes machine-independent QML runtime evidence. It does not claim a
+  human keyboard/focus review inside a complete current Omarchy/Hyprland
+  desktop; issue #7 remains that irreducible acceptance gate.
