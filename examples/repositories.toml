@@ -1,0 +1,9 @@
+# Every path must be absolute and already be a non-bare Git worktree.
+# The service eagerly resolves every entry and refuses to start on ambiguity.
+version = 1
+git_binary = "/usr/bin/git"
+
+[[repositories]]
+id = "example-project"
+label = "Example project"
+path = "/home/you/src/example-project"

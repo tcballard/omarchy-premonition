@@ -1,0 +1,27 @@
+[Unit]
+Description=Premonition controlled patch proposal service
+Documentation=https://github.com/tcballard/Omarchy-Premonition
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/premonitiond --config %E/premonition/repositories.toml --socket %t/premonition/premonition.sock --state-dir %S/premonition/transactions --output-schema %h/.local/share/premonition/agent-output.schema.json
+Restart=on-failure
+RestartSec=2
+RuntimeDirectory=premonition
+RuntimeDirectoryMode=0700
+StateDirectory=premonition
+StateDirectoryMode=0700
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+LockPersonality=yes
+
+[Install]
+WantedBy=default.target

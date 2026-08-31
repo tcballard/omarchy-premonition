@@ -22,15 +22,16 @@ Use a Rust workspace with these ownership boundaries:
 - `premonition-executor`: one audited Codex CLI adapter plus a mockable trait,
   streaming bounds, process-group cancellation, and redacted provenance.
 - `premonitiond`: same-UID user service and sole owner of the active executor,
-  in-memory proposals, bounded history, TTL, idempotency, and recovery.
+  one bounded in-memory proposal, bounded history, idempotency, and recovery.
 - `premonition`: thin JSON CLI client over an owner-only Unix socket.
 - `omarchy-plugin/`: presentation only; it polls content-free status and fetches
   proposal bodies only for explicit review.
 
 The root manifest uses `schemaVersion: 1`, `bar-widget` and one `panel` entry.
-The panel owns both the compact view and an internal full-screen review window.
+The panel owns the active-proposal view and an internal full-screen review
+window; the separate bar entry point polls content-free status only.
 
-The daemon socket lives at `$XDG_RUNTIME_DIR/premonition/v1.sock` in a 0700
+The daemon socket lives at `$XDG_RUNTIME_DIR/premonition/premonition.sock` in a 0700
 directory with mode 0600 and same-UID peer checks. No `/tmp` fallback exists.
 
 Codex is the first executor. It runs no-approval, read-only, ephemeral,
@@ -39,8 +40,9 @@ strict-config JSONL with a schema-constrained response; prompts use stdin.
 ## Apply guarantee
 
 Identity, staleness, paths, bounds, and `git apply --check` are revalidated
-before publication. Publication uses staged same-filesystem files, a durable
-content-free journal, per-file atomic rename, and recovery before new commands.
+before publication. Publication generates post-images in private state, then
+creates target-directory temporary files, a durable content-free journal,
+per-file atomic rename, and recovery before new commands.
 
 POSIX does not provide one instantaneous transaction across arbitrary files in
 multiple directories. No command may report success for a mixed tree; after

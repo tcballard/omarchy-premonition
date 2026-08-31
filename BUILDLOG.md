@@ -81,3 +81,23 @@ Append-only evidence of build stages and verification outcomes.
 - Synthetic daemon tests cover single-flight, read-only pre-Apply state,
   explicit Apply, unchanged Git index, cancellation, and idempotent replay.
 - strict CLI/daemon/executor all-target Clippy with `-D warnings`: passed.
+
+## 2026-08-31 — S3 Omarchy Quattro interface
+
+- Added the thin bar entry point with idle, working, ready, invalid, error,
+  runtime-missing, applying, and recovery-required states. Polling is bounded,
+  content-free, single-process, and non-overlapping.
+- Added the summoned panel with explicit selection/clipboard actions, repository
+  allowlist picker, bounded in-memory recent state, and Review, Apply, Copy,
+  Dismiss, and Cancel controls.
+- Added an internal full-screen diff-review overlay. JSON-derived strings render
+  as plain text; Apply remains disabled in the compact panel until that proposal
+  body has been fetched for review.
+- Added a hardened systemd user unit, explicit one-repository installer, and
+  example allowlist.
+- QML structural/hostile-text checks: passed. Bash syntax check: passed.
+- Official `omarchy-plugin-validate` from pinned Quattro
+  `981274b20af8e85c09845071ac33c6230909f119` (validator SHA-256
+  `f7507e5042eb970e3dc918bdf6bf251c7557443892a77e71a17d7019ddde72c8`):
+  passed with exit 0 and no diagnostics.
+- Live Quickshell rendering was not available and remains issue #7.

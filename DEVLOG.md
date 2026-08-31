@@ -51,3 +51,17 @@ Append-only engineering decisions, investigations, and candid limitations.
   `recovery_required`; only content-free status and health remain available.
 - Clipboard integration is deliberately one-shot in the CLI. There is no
   watcher, history subscription, or background clipboard access in v0.1.
+
+## 2026-08-31 — S3 UI boundary
+
+- Quattro's one on-demand loader per plugin ID chooses `panel` ahead of other
+  summoned kinds. The manifest therefore exposes a bar widget and one panel;
+  the panel itself owns the review overlay.
+- QML starts only fixed argv-vector commands for the Rust CLI and Omarchy IPC.
+  It performs no filesystem, Git, agent, patch-validation, or Apply work.
+- Selected text uses an explicit one-shot primary-selection read; clipboard
+  text uses an explicit one-shot clipboard read. Both share the same CLI input
+  bounds and there is no history watcher.
+- The current environment has neither Quickshell nor QML lint tooling. Static
+  contract/hostile-text checks and the real pinned manifest validator passed;
+  visual/focus/compositor acceptance remains explicitly open.
