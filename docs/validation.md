@@ -19,8 +19,9 @@ SHA-256 `f7507e5042eb970e3dc918bdf6bf251c7557443892a77e71a17d7019ddde72c8`.
 | Mechanical PR preflight | `preflight_pr.py --repo . --base main` | Passed, no blockers or warnings |
 
 ShellCheck is not installed in this execution container. The immutable-action
-CI recipe installs it from Ubuntu 24.04 and runs `shellcheck scripts/*.sh`; that
-remote result must be green before merge.
+CI recipe installs it from Ubuntu 24.04 and runs `shellcheck scripts/*.sh`; its
+first run identified only shell portability/lint findings, which were corrected
+before review handoff.
 
 Packaging is invoked only from a clean branch with:
 

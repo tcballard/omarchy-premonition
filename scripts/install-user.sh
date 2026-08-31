@@ -34,14 +34,14 @@ if [[ $top_level != "$repo_path" ]]; then
   exit 65
 fi
 for value in "$repo_path" "$git_binary" "$repo_label"; do
-  if [[ $value == *'"'* || $value == *'\'* || $value == *$'\r'* ]]; then
+  if [[ $value == *\"* || $value == *\\* || $value == *$'\r'* ]]; then
     printf 'Installer cannot safely encode quotes, backslashes, or carriage returns.\n' >&2
     exit 65
   fi
 done
 
-script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
-project_root=$(CDPATH= cd -- "$script_dir/.." && pwd -P)
+script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd -P)
+project_root=$(CDPATH='' cd -- "$script_dir/.." && pwd -P)
 config_home=$HOME/.config
 if [[ -v XDG_CONFIG_HOME && -n $XDG_CONFIG_HOME ]]; then config_home=$XDG_CONFIG_HOME; fi
 config_dir=$config_home/premonition
