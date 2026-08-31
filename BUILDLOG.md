@@ -118,3 +118,6 @@ Append-only evidence of build stages and verification outcomes.
   reported its stable content-free bind error and the external socket demo
   could not run here. The same complete state-machine workflow passes in-process
   tests. This is recorded as an environment gate, not live acceptance.
+- Clean-object packaging built and tested an extracted Git archive, passed the
+  dependency policy and pinned validator, verified the bundle checksum, then
+  extracted and revalidated the plugin and both executables.

@@ -39,6 +39,7 @@ mkdir -p "$work/source" "$work/bundle/bin" \
 git -C "$project_root" archive --format=tar "$commit" | tar -xf - -C "$work/source"
 
 (cd "$work/source" && cargo build --locked --release -p premonition-cli -p premonition-daemon)
+(cd "$work/source" && cargo test --locked --workspace --all-features)
 (cd "$work/source" && cargo deny check)
 
 install -m 0755 "$work/source/target/release/premonition" "$work/bundle/bin/premonition"
@@ -68,6 +69,7 @@ archive="$project_root/dist/omarchy-premonition-$commit.tar.gz"
 tar --sort=name --mtime="@$epoch" --owner=0 --group=0 --numeric-owner \
   -C "$work/bundle" -czf "$archive" .
 sha256sum "$archive" >"$archive.sha256"
+sha256sum --check "$archive.sha256"
 
 mkdir "$work/recheck"
 tar -xzf "$archive" -C "$work/recheck"
