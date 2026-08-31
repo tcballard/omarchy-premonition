@@ -22,3 +22,14 @@ Append-only evidence of build stages and verification outcomes.
   pushed. Remote `main` and issues were unaffected.
 - Reconstructed S0 from the recorded pins and ADR; subsequent validated logical
   commits are pushed immediately after creation.
+
+## 2026-08-31 — strict protocol v1
+
+- Added a four-byte-length-prefixed JSON v1 contract with strict externally
+  tagged request operations and `deny_unknown_fields` parameter objects.
+- Bounded input, frames, patch/rationale response bodies, repository lists, and
+  recent status history.
+- Added content-free status/error enums and explicit body-bearing show/copy
+  operations.
+- `cargo test -p premonition-protocol`: 11 passed.
+- strict protocol Clippy with all targets and `-D warnings`: passed.
