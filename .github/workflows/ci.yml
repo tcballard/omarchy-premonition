@@ -50,7 +50,7 @@ jobs:
     container: archlinux:base-devel
     steps:
       - name: Install runtime
-        run: pacman -Syu --noconfirm git jq python quickshell weston
+        run: pacman -Syu --noconfirm git grim jq python quickshell sway
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false
@@ -58,15 +58,20 @@ jobs:
         run: |
           git clone --filter=blob:none https://github.com/omacom/omarchy.git "$RUNNER_TEMP/omarchy"
           git -C "$RUNNER_TEMP/omarchy" checkout --detach 981274b20af8e85c09845071ac33c6230909f119
-      - name: Run real QML under headless Weston
+      - name: Run real QML under headless wlroots
         shell: bash
         run: |
           export XDG_RUNTIME_DIR="$RUNNER_TEMP/runtime"
           install -d -m 0700 "$XDG_RUNTIME_DIR"
-          weston --backend=headless-backend.so --socket=wayland-9 --idle-time=0 >"$RUNNER_TEMP/weston.log" 2>&1 &
-          export WAYLAND_DISPLAY=wayland-9
-          for _ in {1..50}; do [[ -S "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" ]] && break; sleep 0.1; done
-          test -S "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY"
+          WLR_BACKENDS=headless WLR_RENDERER=pixman WLR_HEADLESS_OUTPUTS=1 \
+            sway --unsupported-gpu --config /dev/null >"$RUNNER_TEMP/sway.log" 2>&1 &
+          for _ in {1..50}; do
+            wayland_socket=$(find "$XDG_RUNTIME_DIR" -maxdepth 1 -type s -name 'wayland-*' -print -quit)
+            [[ -n $wayland_socket ]] && break
+            sleep 0.1
+          done
+          test -n "$wayland_socket"
+          export WAYLAND_DISPLAY=${wayland_socket##*/}
           OMARCHY_PATH="$RUNNER_TEMP/omarchy" \
             PREMONITION_RUNTIME_SCREENSHOT="$RUNNER_TEMP/premonition-runtime.png" \
             ./scripts/check-qml-runtime.sh
