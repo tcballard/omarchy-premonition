@@ -50,7 +50,7 @@ jobs:
     container: archlinux:base-devel
     steps:
       - name: Install runtime
-        run: pacman -Syu --noconfirm git grim jq python quickshell weston
+        run: pacman -Syu --noconfirm git jq python quickshell weston
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false
