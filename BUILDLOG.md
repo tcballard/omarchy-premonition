@@ -33,3 +33,20 @@ Append-only evidence of build stages and verification outcomes.
   operations.
 - `cargo test -p premonition-protocol`: 11 passed.
 - strict protocol Clippy with all targets and `-D warnings`: passed.
+
+## 2026-08-31 — S1 headless safety core
+
+- Added eager repository allowlisting with canonical root, Git-directory, and
+  pinned Git-binary identity checks.
+- Added conservative HEAD/index/tracked+untracked worktree snapshots and stale
+  proposal rejection before and during Apply.
+- Added a deliberately narrow unified-diff parser for bounded textual
+  add/modify/delete changes; traversal, `.git`, symlinks, hardlinks, binary
+  patches, renames, mode changes, malformed hunks, and nested repositories fail
+  closed.
+- Added off-repository post-image generation plus private, journalled,
+  per-file atomic publication. Recovery resolves an interrupted publication to
+  the complete pre-Apply or post-Apply state; Git index and hooks are untouched.
+- `cargo test -p premonition-core`: 18 passed, including a real synthetic Git
+  repository and interrupted-publication recovery.
+- strict core Clippy with all targets and `-D warnings`: passed.
