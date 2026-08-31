@@ -161,3 +161,15 @@ Append-only evidence of build stages and verification outcomes.
 - This closes machine-independent QML runtime evidence. It does not claim a
   human keyboard/focus review inside a complete current Omarchy/Hyprland
   desktop; issue #7 remains that irreducible acceptance gate.
+
+## 2026-08-31 — S4 marketplace pin-fetch reconciliation
+
+- Marketplace submission #3799 passed repository and Quattro compatibility at
+  `2ea195b4f9c503f0f01c8a3e3fc90f64aadaf993`.
+- The deterministic baseline conservatively flagged the runtime fixture's
+  clone-first upstream acquisition as unpinned remote Git execution, although
+  the script checked out and verified the pinned commit before execution.
+- Reordered acquisition to validate the full 40-character pin first, initialize
+  an empty repository, fetch only that commit, and check it out detached before
+  any upstream code runs. The product runtime and authority boundary are
+  unchanged.

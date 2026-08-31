@@ -115,3 +115,14 @@ desktop. That last human observation stays open and is not renamed into an
 automated claim.
 
 Source: BUILDLOG `S3.1 real Quickshell runtime contract`.
+
+## 2026-08-31 — S4 make the pin visible to the scanner
+
+The runtime fixture was already execution-pinned, but its clone-first shape hid
+that fact from the marketplace's deliberately small deterministic scanner. The
+new sequence makes the safety order mechanical: validate the literal pin, fetch
+that object alone, detach at it, verify HEAD, then execute the upstream
+contract. This removes review ambiguity without weakening or broadening the
+runtime test.
+
+Source: BUILDLOG `S4 marketplace pin-fetch reconciliation`.
