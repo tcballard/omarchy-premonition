@@ -50,3 +50,17 @@ Append-only evidence of build stages and verification outcomes.
 - `cargo test -p premonition-core`: 18 passed, including a real synthetic Git
   repository and interrupted-publication recovery.
 - strict core Clippy with all targets and `-D warnings`: passed.
+
+## 2026-08-31 — S2 bounded Codex executor
+
+- Added the first genuine agent path through the local Codex CLI using
+  `read-only`, `--ask-for-approval never`, ephemeral sessions, ignored user
+  config/rules, JSONL events, and a strict final-output schema.
+- Canonicalized and hashed the executable and schema, revalidating both before
+  each investigation. Recorded content-free version and SHA-256 provenance.
+- Bounded prompt, stdout, stderr, patch, rationale, version probe, and runtime.
+  Timeout/cancellation/output overflow kill the entire child process group.
+- Added a compiled fake agent covering success, malformed structured output,
+  hostile terminal text, crash, overflow, timeout, and cancellation.
+- `cargo test -p premonition-executor`: 7 passed; strict all-target Clippy with
+  `-D warnings`: passed.

@@ -27,3 +27,15 @@ Append-only engineering decisions, investigations, and candid limitations.
   guarantee is therefore: no successful mixed result, and recovery converges
   to all-pre or all-post. A process kill can expose a transient mixed worktree
   until the daemon's mandatory startup recovery completes.
+
+## 2026-08-31 — S2 executor decisions
+
+- The extension boundary is an `AgentExecutor` trait, but v0.1 implements and
+  claims only Codex CLI. Claude Code, OpenCode, Pi, and Wayfinder remain future
+  adapters with no compatibility claim.
+- Observed text is placed inside an explicitly inert delimiter in a fixed
+  prompt. This reduces prompt-confusion risk; it does not make model output
+  trusted. The strict parser and safety core remain the enforcement boundary.
+- A live Codex inference was not used as deterministic test evidence in this
+  environment. Process semantics are exercised with the compiled fixture; the
+  installed Codex executable is probed for version/provenance at daemon start.
