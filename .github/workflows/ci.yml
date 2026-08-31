@@ -64,13 +64,19 @@ jobs:
           export XDG_RUNTIME_DIR="$RUNNER_TEMP/runtime"
           install -d -m 0700 "$XDG_RUNTIME_DIR"
           WLR_BACKENDS=headless WLR_RENDERER=pixman WLR_HEADLESS_OUTPUTS=1 \
+            WLR_LIBINPUT_NO_DEVICES=1 \
             sway --unsupported-gpu --config /dev/null >"$RUNNER_TEMP/sway.log" 2>&1 &
+          sway_pid=$!
           for _ in {1..50}; do
             wayland_socket=$(find "$XDG_RUNTIME_DIR" -maxdepth 1 -type s -name 'wayland-*' -print -quit)
             [[ -n $wayland_socket ]] && break
             sleep 0.1
           done
-          test -n "$wayland_socket"
+          if [[ -z $wayland_socket ]]; then
+            cat "$RUNNER_TEMP/sway.log" >&2
+            wait "$sway_pid" || true
+            exit 1
+          fi
           export WAYLAND_DISPLAY=${wayland_socket##*/}
           OMARCHY_PATH="$RUNNER_TEMP/omarchy" \
             PREMONITION_RUNTIME_SCREENSHOT="$RUNNER_TEMP/premonition-runtime.png" \
