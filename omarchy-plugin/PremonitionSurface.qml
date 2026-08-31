@@ -176,13 +176,6 @@ Item {
     showProcess.running = true
   }
 
-  function captureEvidence(path, completed) {
-    var target = reviewOpen ? reviewWindow.contentItem : window.contentItem
-    target.grabToImage(function(result) {
-      completed(result.saveToFile(path))
-    })
-  }
-
   function acceptProposal(output) {
     var envelope = parseEnvelope(output)
     if (!envelope || !envelope.ok || !envelope.result
