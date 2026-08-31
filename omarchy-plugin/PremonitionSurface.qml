@@ -176,6 +176,13 @@ Item {
     showProcess.running = true
   }
 
+  function captureEvidence(path, completed) {
+    var target = reviewOpen ? reviewWindow.contentItem : window.contentItem
+    target.grabToImage(function(result) {
+      completed(result.saveToFile(path))
+    })
+  }
+
   function acceptProposal(output) {
     var envelope = parseEnvelope(output)
     if (!envelope || !envelope.ok || !envelope.result
@@ -237,7 +244,6 @@ Item {
       + " · " + patchBytes + " patch bytes"
     if (state === "invalid") return "The candidate failed deterministic validation."
     if (state === "runtime_missing") return "The daemon or configured Codex runtime is unavailable."
-    if (state === "recovery_required") return "Resolve the interrupted Apply journal before continuing."
     if (failureCode !== "") return failureCode.replace(/_/g, " ")
     return "Premonition failed safely."
   }

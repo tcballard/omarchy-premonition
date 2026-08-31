@@ -8,6 +8,7 @@ ShellRoot {
   readonly property string surfaceUrl: Quickshell.env("PREMONITION_SURFACE_URL")
   readonly property string fakeLog: Quickshell.env("PREMONITION_FAKE_LOG")
   readonly property string overlapMarker: Quickshell.env("PREMONITION_FAKE_LOCK") + ".overlap"
+  readonly property string screenshotPath: Quickshell.env("PREMONITION_RUNTIME_SCREENSHOT")
   property var failures: []
   property var surface: null
   property int step: 0
@@ -124,8 +125,11 @@ ShellRoot {
           overlap.open("GET", "file://" + overlapMarker, false)
           try { overlap.send() } catch (error) {}
           test.assertTrue(overlap.status === 0 || overlap.status === 404, "polls never overlap")
-          test.writeResult()
           timer.stop()
+          surface.captureEvidence(screenshotPath, function(saved) {
+            test.assertTrue(saved, "Qt captures the rendered review surface")
+            test.writeResult()
+          })
           break
       }
     }
