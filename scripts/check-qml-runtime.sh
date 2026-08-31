@@ -48,6 +48,7 @@ PREMONITION_SURFACE_URL="$(realpath "$plugin/omarchy-plugin/PremonitionSurface.q
 PREMONITION_QML_RESULT="$result" \
 PREMONITION_FAKE_LOG="$fake_log" \
 PREMONITION_FAKE_LOCK="$fake_lock" \
+QML_XHR_ALLOW_FILE_READ=1 \
 HOME="$home" XDG_CONFIG_HOME="$home/.config" XDG_CACHE_HOME="$home/.cache" \
 XDG_STATE_HOME="$home/.local/state" XDG_RUNTIME_DIR="$XDG_RUNTIME_DIR" \
 QML2_IMPORT_PATH="$upstream/shell${QML2_IMPORT_PATH:+:$QML2_IMPORT_PATH}" \
