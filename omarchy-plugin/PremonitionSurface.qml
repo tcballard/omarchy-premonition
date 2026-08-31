@@ -162,6 +162,12 @@ Item {
     actionProcess.running = true
   }
 
+  function cancelInvestigation() {
+    if (actionProcess.running) return
+    actionProcess.command = [executable, "cancel", "--json"]
+    actionProcess.running = true
+  }
+
   function openReview() {
     if (!safeId(proposalId) || showProcess.running) return
     showProcess.command = [
@@ -415,12 +421,7 @@ Item {
             text: "Cancel"
             enabled: root.state === "working"
             KeyNavigation.tab: selectionButton
-            onClicked: {
-              if (!actionProcess.running) {
-                actionProcess.command = [root.executable, "cancel", "--json"]
-                actionProcess.running = true
-              }
-            }
+            onClicked: root.cancelInvestigation()
           }
         }
 
