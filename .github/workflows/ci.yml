@@ -43,3 +43,35 @@ jobs:
         env:
           OMARCHY_VALIDATOR: ${{ runner.temp }}/omarchy/bin/omarchy-plugin-validate
         run: ./scripts/package.sh
+
+  quickshell-runtime:
+    name: Quickshell runtime contract
+    runs-on: ubuntu-24.04
+    container: archlinux:base-devel
+    steps:
+      - name: Install runtime
+        run: pacman -Syu --noconfirm git grim jq python quickshell weston
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Fetch pinned Omarchy
+        run: |
+          git clone --filter=blob:none https://github.com/omacom/omarchy.git "$RUNNER_TEMP/omarchy"
+          git -C "$RUNNER_TEMP/omarchy" checkout --detach 981274b20af8e85c09845071ac33c6230909f119
+      - name: Run real QML under headless Weston
+        shell: bash
+        run: |
+          export XDG_RUNTIME_DIR="$RUNNER_TEMP/runtime"
+          install -d -m 0700 "$XDG_RUNTIME_DIR"
+          weston --backend=headless-backend.so --socket=wayland-9 --idle-time=0 >"$RUNNER_TEMP/weston.log" 2>&1 &
+          export WAYLAND_DISPLAY=wayland-9
+          for _ in {1..50}; do [[ -S "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" ]] && break; sleep 0.1; done
+          test -S "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY"
+          OMARCHY_PATH="$RUNNER_TEMP/omarchy" \
+            PREMONITION_RUNTIME_SCREENSHOT="$RUNNER_TEMP/premonition-runtime.png" \
+            ./scripts/check-qml-runtime.sh
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: premonition-quickshell-runtime
+          path: ${{ runner.temp }}/premonition-runtime.png
+          if-no-files-found: error

@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+: "${PREMONITION_FAKE_LOG:?}"
+: "${PREMONITION_FAKE_LOCK:?}"
+
+printf '%s\n' "$*" >>"$PREMONITION_FAKE_LOG"
+
+case ${1-} in
+  status)
+    if ! mkdir "$PREMONITION_FAKE_LOCK" 2>/dev/null; then
+      : >"$PREMONITION_FAKE_LOCK.overlap"
+    else
+      sleep 0.08
+      rmdir "$PREMONITION_FAKE_LOCK"
+    fi
+    printf '%s\n' '{"contract_version":1,"request_id":"status","ok":true,"result":{"kind":"status","state":"ready","proposal_id":"p-1","correlation_id":"c-1","repository_id":"fixture","created_unix_ms":1,"patch_bytes":91,"file_count":1,"recent":[]}}'
+    ;;
+  repositories)
+    printf '%s\n' '{"contract_version":1,"request_id":"repos","ok":true,"result":{"kind":"repositories","repositories":[{"id":"fixture","label":"Hostile <b>repository</b>"}]}}'
+    ;;
+  submit)
+    printf '%s\n' '{"contract_version":1,"request_id":"submit","ok":true,"result":{"kind":"accepted","correlation_id":"c-1"}}'
+    ;;
+  proposal)
+    case ${2-} in
+      show)
+        printf '%s\n' '{"contract_version":1,"request_id":"show","ok":true,"result":{"kind":"proposal","proposal_id":"p-1","repository_id":"fixture","patch":"diff --git a/a.txt b/a.txt\\n--- a/a.txt\\n+++ b/a.txt\\n@@ -1 +1 @@\\n-<b>old</b>\\n+<img src=\\\"file:///etc/passwd\\\">\\n","rationale":"Literal <b>markup</b> and ‮ text remain plain.","file_count":1,"created_unix_ms":1,"executor":{"tool_version":"fixture 1","tool_sha256":"0000000000000000000000000000000000000000000000000000000000000000","model":"gpt-5.6-sol","reasoning_effort":"low"}}}'
+        ;;
+      copy)
+        printf '%s\n' '{"contract_version":1,"request_id":"copy","ok":true,"result":{"kind":"copied","proposal_id":"p-1"}}'
+        ;;
+      dismiss)
+        printf '%s\n' '{"contract_version":1,"request_id":"dismiss","ok":true,"result":{"kind":"dismissed","proposal_id":"p-1","already_dismissed":false}}'
+        ;;
+      apply)
+        printf '%s\n' '{"contract_version":1,"request_id":"apply","ok":true,"result":{"kind":"applied","proposal_id":"p-1","already_applied":false}}'
+        ;;
+      *) exit 64 ;;
+    esac
+    ;;
+  cancel)
+    printf '%s\n' '{"contract_version":1,"request_id":"cancel","ok":true,"result":{"kind":"cancelled","already_terminal":false}}'
+    ;;
+  *) exit 64 ;;
+esac
