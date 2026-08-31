@@ -214,6 +214,7 @@ impl CodexCliExecutor {
                 "--ephemeral",
                 "--ignore-user-config",
                 "--ignore-rules",
+                "--strict-config",
                 "--json",
                 "--color",
                 "never",

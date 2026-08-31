@@ -55,13 +55,24 @@ struct SubmitArguments {
     /// Read observed text from stdin.
     #[arg(
         long,
-        conflicts_with = "clipboard",
-        required_unless_present = "clipboard"
+        conflicts_with_all = ["clipboard", "selection"],
+        required_unless_present_any = ["clipboard", "selection"]
     )]
     stdin: bool,
     /// Explicitly read the current clipboard once.
-    #[arg(long, conflicts_with = "stdin", required_unless_present = "stdin")]
+    #[arg(
+        long,
+        conflicts_with_all = ["stdin", "selection"],
+        required_unless_present_any = ["stdin", "selection"]
+    )]
     clipboard: bool,
+    /// Explicitly read the current primary selection once.
+    #[arg(
+        long,
+        conflicts_with_all = ["stdin", "clipboard"],
+        required_unless_present_any = ["stdin", "clipboard"]
+    )]
+    selection: bool,
     /// Optional caller correlation ID.
     #[arg(long)]
     correlation_id: Option<String>,
@@ -103,7 +114,8 @@ async fn main() -> std::process::ExitCode {
     let request_id = generated_id("r").unwrap_or_else(|_| fallback_id());
     let socket = arguments
         .socket
-        .or_else(|| std::env::var_os("PREMONITION_SOCKET").map(PathBuf::from));
+        .or_else(|| std::env::var_os("PREMONITION_SOCKET").map(PathBuf::from))
+        .or_else(default_socket);
     let response = match socket {
         Some(socket) => execute(&socket, request_id.clone(), arguments.command)
             .await
@@ -133,8 +145,8 @@ async fn execute(
         TopCommand::Repositories => (Operation::Repositories(EmptyParams {}), None),
         TopCommand::Health => (Operation::Health(EmptyParams {}), None),
         TopCommand::Submit(arguments) => {
-            let input = if arguments.clipboard {
-                read_clipboard(&arguments.clipboard_reader).await?
+            let input = if arguments.clipboard || arguments.selection {
+                read_clipboard(&arguments.clipboard_reader, arguments.selection).await?
             } else {
                 read_stdin()?
             };
@@ -241,10 +253,14 @@ fn read_stdin() -> Result<String, ClientError> {
     String::from_utf8(bytes).map_err(|_| ClientError::Input)
 }
 
-async fn read_clipboard(binary: &Path) -> Result<String, ClientError> {
+async fn read_clipboard(binary: &Path, primary: bool) -> Result<String, ClientError> {
     let binary = canonical_binary(binary)?;
-    let mut child = Command::new(binary)
-        .arg("--no-newline")
+    let mut command = Command::new(binary);
+    command.arg("--no-newline");
+    if primary {
+        command.arg("--primary");
+    }
+    let mut child = command
         .kill_on_drop(true)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
@@ -313,6 +329,11 @@ fn proposal_parameters(id: String) -> Result<ProposalParams, ClientError> {
     Ok(ProposalParams {
         proposal_id: SafeId::new(id)?,
     })
+}
+
+fn default_socket() -> Option<PathBuf> {
+    let runtime = std::env::var_os("XDG_RUNTIME_DIR")?;
+    Some(PathBuf::from(runtime).join("premonition/premonition.sock"))
 }
 
 fn generated_id(prefix: &str) -> Result<SafeId, ClientError> {
