@@ -79,3 +79,22 @@ Append-only engineering decisions, investigations, and candid limitations.
   boundary. This is distinct from Quickshell absence: state-machine tests cover
   the protocol workflow, while external socket and live compositor evidence
   remain claims to run in an ordinary Omarchy user session.
+
+## 2026-08-31 — S2.1 deliberate escalation
+
+The executor now says exactly what it is doing instead of inheriting an ambient
+reasoning default. Low is the ordinary path; Medium is a single repair attempt
+for candidate-quality failures, not a generic retry button for broken runtimes
+or changed repositories.
+
+That distinction matters because retries expand both authority and time. A
+timeout, cancellation, crash, or stale tree now ends the job immediately. The
+tests also force a real descendant process to prove group termination rather
+than merely checking the parent error enum.
+
+Proposal review can show which pinned tool, configured model, and effort made
+the candidate, while the bar's routine polling remains free of that detail and
+all content bodies. The next move is live-shell evidence, not more executor
+claims.
+
+Source: BUILDLOG `S2.1 explicit effort and provenance closure`.

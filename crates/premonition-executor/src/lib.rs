@@ -33,6 +33,24 @@ pub const MAX_PATCH_BYTES: usize = 256 * 1024;
 /// Maximum rationale body.
 pub const MAX_RATIONALE_BYTES: usize = 8 * 1024;
 
+/// Closed reasoning-effort policy supported by the v0.1 executor.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ReasoningEffort {
+    /// First bounded attempt.
+    Low,
+    /// Only permitted escalation after invalid Low output.
+    Medium,
+}
+
+impl ReasoningEffort {
+    fn config_value(self) -> &'static str {
+        match self {
+            Self::Low => "model_reasoning_effort=\"low\"",
+            Self::Medium => "model_reasoning_effort=\"medium\"",
+        }
+    }
+}
+
 /// Process-wide cooperative cancellation signal.
 #[derive(Clone, Debug, Default)]
 pub struct Cancellation {
@@ -121,6 +139,8 @@ pub struct Provenance {
     pub version: String,
     /// Executable SHA-256.
     pub sha256: String,
+    /// Explicit configured model identifier.
+    pub model: String,
 }
 
 /// Extensible local executor boundary.
@@ -130,6 +150,7 @@ pub trait AgentExecutor: Send + Sync {
         &'a self,
         repository: &'a Path,
         observed_error: &'a str,
+        effort: ReasoningEffort,
         cancellation: Cancellation,
     ) -> Pin<Box<dyn Future<Output = Result<Candidate, ExecutorError>> + Send + 'a>>;
 
@@ -158,6 +179,7 @@ impl CodexCliExecutor {
     pub async fn new(
         executable: &Path,
         schema: &Path,
+        model: &str,
         timeout: Duration,
     ) -> Result<Self, ExecutorError> {
         let executable = canonical_regular(executable, 128 * 1024 * 1024)?;
@@ -165,16 +187,22 @@ impl CodexCliExecutor {
         let sha256 = hash_file(&executable, 128 * 1024 * 1024)?;
         let schema_sha256 = hash_file(&schema, 64 * 1024)?;
         let version = probe_version(&executable).await?;
-        if timeout.is_zero() || timeout > Duration::from_secs(300) {
+        if timeout.is_zero() || timeout > Duration::from_secs(300) || !valid_model_identifier(model)
+        {
             return Err(ExecutorError::Configuration);
         }
+        let model = model.to_owned();
         Ok(Self {
             executable,
             executable_sha256: sha256.clone(),
             schema,
             schema_sha256,
             timeout,
-            provenance: Provenance { version, sha256 },
+            provenance: Provenance {
+                version,
+                sha256,
+                model,
+            },
         })
     }
 
@@ -182,6 +210,7 @@ impl CodexCliExecutor {
         &self,
         repository: &Path,
         observed_error: &str,
+        effort: ReasoningEffort,
         cancellation: Cancellation,
     ) -> Result<Candidate, ExecutorError> {
         if observed_error.is_empty() || observed_error.len() > MAX_INPUT_BYTES {
@@ -206,7 +235,9 @@ impl CodexCliExecutor {
             .env("LANG", "C")
             .env("TERM", "dumb")
             .env("NO_COLOR", "1")
-            .args(["--ask-for-approval", "never", "exec"])
+            .args(["--ask-for-approval", "never"])
+            .args(["--model", &self.provenance.model])
+            .args(["--config", effort.config_value(), "exec"])
             .args(["--sandbox", "read-only"])
             .arg("--cd")
             .arg(&repository)
@@ -286,9 +317,10 @@ impl AgentExecutor for CodexCliExecutor {
         &'a self,
         repository: &'a Path,
         observed_error: &'a str,
+        effort: ReasoningEffort,
         cancellation: Cancellation,
     ) -> Pin<Box<dyn Future<Output = Result<Candidate, ExecutorError>> + Send + 'a>> {
-        Box::pin(self.run(repository, observed_error, cancellation))
+        Box::pin(self.run(repository, observed_error, effort, cancellation))
     }
 
     fn provenance(&self) -> &Provenance {
@@ -352,6 +384,14 @@ fn build_prompt(observed_error: &str) -> Result<String, ExecutorError> {
         return Err(ExecutorError::Input);
     }
     Ok([prefix, observed_error, suffix].concat())
+}
+
+fn valid_model_identifier(model: &str) -> bool {
+    !model.is_empty()
+        && model.len() <= 64
+        && model
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-'))
 }
 
 fn parse_jsonl(bytes: &[u8]) -> Result<Candidate, ExecutorError> {

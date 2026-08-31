@@ -29,6 +29,9 @@ struct Arguments {
     /// Absolute Codex CLI executable.
     #[arg(long, default_value = "/opt/codex/bin/codex")]
     codex: PathBuf,
+    /// Explicit Codex model identifier recorded in proposal provenance.
+    #[arg(long, default_value = "gpt-5.6-sol")]
+    model: String,
     /// Strict final-response JSON schema.
     #[arg(long)]
     output_schema: PathBuf,
@@ -55,6 +58,7 @@ async fn run(arguments: Arguments) -> Result<(), &'static str> {
     let executor: Option<Arc<dyn AgentExecutor>> = CodexCliExecutor::new(
         &arguments.codex,
         &arguments.output_schema,
+        &arguments.model,
         Duration::from_secs(arguments.timeout_seconds),
     )
     .await

@@ -21,6 +21,30 @@ pub const MAX_RECENT: usize = 20;
 /// Maximum configured repository summaries returned to the UI.
 pub const MAX_REPOSITORIES: usize = 64;
 
+/// Content-free executor evidence exposed only during explicit review.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ExecutorEvidence {
+    /// Validated one-line tool version.
+    pub tool_version: String,
+    /// Canonical executor binary SHA-256.
+    pub tool_sha256: String,
+    /// Explicit configured model identifier.
+    pub model: SafeId,
+    /// Effort that produced the validated proposal.
+    pub reasoning_effort: ProposalEffort,
+}
+
+/// Closed proposal effort vocabulary.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ProposalEffort {
+    /// Initial bounded attempt.
+    Low,
+    /// Single permitted escalation.
+    Medium,
+}
+
 /// A validated opaque identifier safe to expose in status and argv.
 #[derive(Clone, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(transparent)]
@@ -267,6 +291,8 @@ pub enum ResultPayload {
         file_count: u16,
         /// Creation time.
         created_unix_ms: u64,
+        /// Content-free executor/model provenance.
+        executor: ExecutorEvidence,
     },
     /// Sensitive patch handoff consumed internally by the CLI copy command.
     CopyPayload {
@@ -519,10 +545,14 @@ fn validate_result(result: &ResultPayload) -> Result<(), ProtocolError> {
             Err(ProtocolError::ResponseOutOfBounds)
         }
         ResultPayload::Proposal {
-            patch, rationale, ..
+            patch,
+            rationale,
+            executor,
+            ..
         } => {
             validate_patch(patch)?;
-            validate_rationale(rationale)
+            validate_rationale(rationale)?;
+            validate_executor_evidence(executor)
         }
         ResultPayload::CopyPayload { patch, .. } => validate_patch(patch),
         ResultPayload::Repositories { repositories }
@@ -566,6 +596,21 @@ fn validate_rationale(rationale: &str) -> Result<(), ProtocolError> {
     if rationale.is_empty()
         || rationale.len() > MAX_RATIONALE_BYTES
         || has_hostile_controls(rationale)
+    {
+        return Err(ProtocolError::ResponseOutOfBounds);
+    }
+    Ok(())
+}
+
+fn validate_executor_evidence(evidence: &ExecutorEvidence) -> Result<(), ProtocolError> {
+    if evidence.tool_version.is_empty()
+        || evidence.tool_version.len() > 128
+        || has_hostile_controls(&evidence.tool_version)
+        || evidence.tool_sha256.len() != 64
+        || !evidence
+            .tool_sha256
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit())
     {
         return Err(ProtocolError::ResponseOutOfBounds);
     }
@@ -688,6 +733,12 @@ mod tests {
                 rationale: "because".into(),
                 file_count: 1,
                 created_unix_ms: 1,
+                executor: ExecutorEvidence {
+                    tool_version: "fake 1".into(),
+                    tool_sha256: "0".repeat(64),
+                    model: id("gpt-5.6-sol"),
+                    reasoning_effort: ProposalEffort::Low,
+                },
             },
         );
         assert_eq!(response.validate(), Err(ProtocolError::ResponseOutOfBounds));
