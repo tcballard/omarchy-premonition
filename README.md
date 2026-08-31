@@ -81,6 +81,7 @@ monitor clipboard history.
 - [Architecture decision](docs/adr/0001-omarchy-first-architecture.md)
 - [Threat model](docs/threat-model.md)
 - [Deterministic headless demo](docs/demo.md)
+- [Machine-independent validation](docs/validation.md)
 - [BUILDLOG](BUILDLOG.md) and [DEVLOG](DEVLOG.md)
 
 Run the non-mutating deterministic demo with `./scripts/demo.sh`; add the
