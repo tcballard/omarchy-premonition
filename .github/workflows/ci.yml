@@ -63,9 +63,10 @@ jobs:
         run: |
           export XDG_RUNTIME_DIR="$RUNNER_TEMP/runtime"
           install -d -m 0700 "$XDG_RUNTIME_DIR"
+          install -m 0755 "$(command -v sway)" "$RUNNER_TEMP/sway"
           WLR_BACKENDS=headless WLR_RENDERER=pixman WLR_HEADLESS_OUTPUTS=1 \
             WLR_LIBINPUT_NO_DEVICES=1 \
-            sway --unsupported-gpu --config /dev/null >"$RUNNER_TEMP/sway.log" 2>&1 &
+            "$RUNNER_TEMP/sway" --unsupported-gpu --config /dev/null >"$RUNNER_TEMP/sway.log" 2>&1 &
           sway_pid=$!
           for _ in {1..50}; do
             wayland_socket=$(find "$XDG_RUNTIME_DIR" -maxdepth 1 -type s -name 'wayland-*' -print -quit)
