@@ -1,0 +1,45 @@
+name: machine-independent acceptance
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Install system checks
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends jq shellcheck
+      - name: Select pinned Rust
+        run: rustup toolchain install 1.98.0 --profile minimal --component clippy,rustfmt && rustup override set 1.98.0
+      - name: Install pinned cargo-deny
+        run: cargo install cargo-deny --locked --version 0.20.2
+      - name: Fetch pinned Omarchy validator
+        run: |
+          git clone --filter=blob:none https://github.com/omacom/omarchy.git "$RUNNER_TEMP/omarchy"
+          git -C "$RUNNER_TEMP/omarchy" checkout --detach 981274b20af8e85c09845071ac33c6230909f119
+          test "$(sha256sum "$RUNNER_TEMP/omarchy/bin/omarchy-plugin-validate" | cut -d' ' -f1)" = f7507e5042eb970e3dc918bdf6bf251c7557443892a77e71a17d7019ddde72c8
+      - name: Verify source
+        run: |
+          cargo fmt --check
+          cargo clippy --workspace --all-targets --all-features -- -D warnings
+          cargo test --workspace --all-features
+          RUSTDOCFLAGS='-D warnings' cargo doc --workspace --all-features --no-deps
+          cargo build --workspace --all-features --release --locked
+          cargo deny check
+          shellcheck scripts/*.sh
+          bash -n scripts/*.sh
+          python3 scripts/check-qml.py
+          python3 scripts/check-secrets.py
+          bash "$RUNNER_TEMP/omarchy/bin/omarchy-plugin-validate" .
+      - name: Package committed object and revalidate archive
+        env:
+          OMARCHY_VALIDATOR: ${{ runner.temp }}/omarchy/bin/omarchy-plugin-validate
+        run: ./scripts/package.sh

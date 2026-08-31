@@ -59,6 +59,8 @@ impl Fixture {
 #[test]
 fn candidate_is_read_only_until_explicit_transactional_apply() {
     let fixture = Fixture::new();
+    fs::write(fixture.repository.join("unrelated.txt"), "keep my work\n")
+        .expect("pre-existing unrelated edit");
     let core = fixture.core();
     let context = core.begin_investigation("fixture").expect("context");
     let proposal = core
@@ -86,6 +88,10 @@ fn candidate_is_read_only_until_explicit_transactional_apply() {
     assert_eq!(
         fs::read_to_string(fixture.repository.join("new.txt")).unwrap(),
         "new\n"
+    );
+    assert_eq!(
+        fs::read_to_string(fixture.repository.join("unrelated.txt")).unwrap(),
+        "keep my work\n"
     );
     assert!(git_output(&fixture.repository, &["diff", "--cached", "--name-only"]).is_empty());
     assert!(!git_output(&fixture.repository, &["status", "--short"]).is_empty());

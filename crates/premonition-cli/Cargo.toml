@@ -12,7 +12,7 @@ path = "src/main.rs"
 
 [dependencies]
 clap.workspace = true
-premonition-protocol = { path = "../premonition-protocol" }
+premonition-protocol = { version = "=0.1.0", path = "../premonition-protocol" }
 serde_json.workspace = true
 thiserror.workspace = true
 tokio.workspace = true

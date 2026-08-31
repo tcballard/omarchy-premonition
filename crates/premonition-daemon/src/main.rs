@@ -41,13 +41,17 @@ struct Arguments {
 async fn main() -> std::process::ExitCode {
     match run(Arguments::parse()).await {
         Ok(()) => std::process::ExitCode::SUCCESS,
-        Err(()) => std::process::ExitCode::FAILURE,
+        Err(message) => {
+            eprintln!("premonitiond: {message}");
+            std::process::ExitCode::FAILURE
+        }
     }
 }
 
-async fn run(arguments: Arguments) -> Result<(), ()> {
-    let core = SafetyCore::load(&arguments.config).map_err(|_| ())?;
-    let apply = ApplyEngine::new(&arguments.state_dir).map_err(|_| ())?;
+async fn run(arguments: Arguments) -> Result<(), &'static str> {
+    let core =
+        SafetyCore::load(&arguments.config).map_err(|_| "repository configuration rejected")?;
+    let apply = ApplyEngine::new(&arguments.state_dir).map_err(|_| "private state rejected")?;
     let executor: Option<Arc<dyn AgentExecutor>> = CodexCliExecutor::new(
         &arguments.codex,
         &arguments.output_schema,
@@ -56,57 +60,61 @@ async fn run(arguments: Arguments) -> Result<(), ()> {
     .await
     .ok()
     .map(|executor| Arc::new(executor) as Arc<dyn AgentExecutor>);
-    let service = Service::new(core, apply, executor).map_err(|_| ())?;
+    let service =
+        Service::new(core, apply, executor).map_err(|_| "recovery initialization failed")?;
     let listener = bind_owner_socket(&arguments.socket).await?;
 
     loop {
         tokio::select! {
             accepted = listener.accept() => {
-                let (stream, _) = accepted.map_err(|_| ())?;
+                let (stream, _) = accepted.map_err(|_| "socket accept failed")?;
                 let service = Arc::clone(&service);
                 tokio::spawn(async move {
                     let _ = serve_one(stream, service).await;
                 });
             }
             signal = tokio::signal::ctrl_c() => {
-                signal.map_err(|_| ())?;
+                signal.map_err(|_| "signal handling failed")?;
                 break;
             }
         }
     }
     drop(listener);
     if socket_is_owned(&arguments.socket) {
-        fs::remove_file(&arguments.socket).map_err(|_| ())?;
+        fs::remove_file(&arguments.socket).map_err(|_| "socket cleanup failed")?;
     }
     Ok(())
 }
 
-async fn bind_owner_socket(path: &Path) -> Result<UnixListener, ()> {
+async fn bind_owner_socket(path: &Path) -> Result<UnixListener, &'static str> {
     if !path.is_absolute() {
-        return Err(());
+        return Err("socket path is not absolute");
     }
-    let parent = path.parent().ok_or(())?;
+    let parent = path.parent().ok_or("socket parent is missing")?;
     let existed = parent.exists();
-    fs::create_dir_all(parent).map_err(|_| ())?;
+    fs::create_dir_all(parent).map_err(|_| "socket parent creation failed")?;
     if !existed {
-        fs::set_permissions(parent, fs::Permissions::from_mode(0o700)).map_err(|_| ())?;
+        fs::set_permissions(parent, fs::Permissions::from_mode(0o700))
+            .map_err(|_| "socket parent permissions failed")?;
     }
-    let parent_metadata = fs::symlink_metadata(parent).map_err(|_| ())?;
+    let parent_metadata =
+        fs::symlink_metadata(parent).map_err(|_| "socket parent metadata failed")?;
     if parent_metadata.file_type().is_symlink()
         || !parent_metadata.is_dir()
         || parent_metadata.uid() != current_uid()
         || parent_metadata.permissions().mode() & 0o077 != 0
     {
-        return Err(());
+        return Err("socket parent is unsafe");
     }
     if fs::symlink_metadata(path).is_ok() {
         if !socket_is_owned(path) || UnixStream::connect(path).await.is_ok() {
-            return Err(());
+            return Err("socket path is occupied");
         }
-        fs::remove_file(path).map_err(|_| ())?;
+        fs::remove_file(path).map_err(|_| "stale socket removal failed")?;
     }
-    let listener = UnixListener::bind(path).map_err(|_| ())?;
-    fs::set_permissions(path, fs::Permissions::from_mode(0o600)).map_err(|_| ())?;
+    let listener = UnixListener::bind(path).map_err(|_| "socket bind syscall failed")?;
+    fs::set_permissions(path, fs::Permissions::from_mode(0o600))
+        .map_err(|_| "socket permissions failed")?;
     Ok(listener)
 }
 
