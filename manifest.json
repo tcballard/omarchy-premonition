@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.tcballard.premonition",
+  "name": "Premonition",
+  "version": "0.1.0",
+  "author": "Tom Ballard",
+  "description": "Review and explicitly apply bounded agent-proposed patches.",
+  "kinds": ["bar-widget", "panel"],
+  "entryPoints": {
+    "barWidget": "omarchy-plugin/BarWidget.qml",
+    "panel": "omarchy-plugin/PremonitionSurface.qml"
+  },
+  "barWidget": {
+    "displayName": "Premonition",
+    "description": "Review proposed fixes before explicitly applying them.",
+    "category": "AI",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}

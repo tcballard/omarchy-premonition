@@ -1,0 +1,21 @@
+[package]
+name = "premonition-daemon"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "premonitiond"
+path = "src/main.rs"
+
+[dependencies]
+premonition-core = { path = "../premonition-core" }
+premonition-executor = { path = "../premonition-executor" }
+premonition-protocol = { path = "../premonition-protocol" }
+serde_json.workspace = true
+tokio.workspace = true
+
+[lints]
+workspace = true
