@@ -12,12 +12,11 @@ JSON CLI is the only interface used by the Omarchy bar widget and panel.
 
 ## Status
 
-Review candidate for v0.1 targeting Omarchy Quattro at exact commit
-`981274b20af8e85c09845071ac33c6230909f119`. No release has been published and
-the plugin has not been submitted to the marketplace. Machine-independent
-acceptance is tracked in issues #1–#6; live Omarchy/Quickshell acceptance is a
-separate hands-on desktop gate in issue #7. Real Quickshell rendering and the
-full deterministic interaction contract run in CI under headless wlroots.
+Version 0.1.0 targets Omarchy Quattro at exact commit
+`981274b20af8e85c09845071ac33c6230909f119`. Machine-independent acceptance is
+complete in issues #1–#6; live Omarchy/Quickshell acceptance remains a separate
+hands-on desktop gate in issue #7. Real Quickshell rendering and the full
+deterministic interaction contract run in CI under headless wlroots.
 
 ## What the workflow does
 
@@ -49,12 +48,47 @@ rescan plugins. The plugin still lands under Omarchy's normal review/enable
 boundary; enable `io.github.tcballard.premonition` in **Setup › Plugins** after
 reviewing it.
 
+### Dependencies
+
+- Omarchy Quattro compatible with the pinned contract above, including
+  Quickshell and `omarchy-shell`.
+- A systemd user session, Git, and Rust 1.98.0 for the source build.
+- An installed and configured Codex CLI. Premonition invokes it read-only with
+  the configured `gpt-5.6-sol` model; it does not integrate directly with a
+  vendor API or store provider credentials.
+
+The plugin needs its native daemon, CLI, allowlist, and user service before it
+can function. A marketplace listing therefore requires manual setup rather than
+the standard clone-only installation path.
+
 To add repositories later, edit
 `~/.config/premonition/repositories.toml`, using
 [the example](examples/repositories.toml), then restart the user service:
 
 ```bash
 systemctl --user restart premonition.service
+```
+
+## Removal
+
+Disable the user service, remove the installed executables and plugin files,
+then ask Omarchy to rescan plugins:
+
+```bash
+systemctl --user disable --now premonition.service
+rm -f ~/.config/systemd/user/premonition.service
+rm -f ~/.local/bin/premonition ~/.local/bin/premonitiond
+rm -rf ~/.local/share/premonition
+rm -rf ~/.config/omarchy/plugins/io.github.tcballard.premonition
+systemctl --user daemon-reload
+omarchy-shell shell rescanPlugins
+```
+
+The repository allowlist and transaction state are deliberately preserved.
+After reviewing them, remove those separately if desired:
+
+```bash
+rm -rf ~/.config/premonition ~/.local/state/premonition
 ```
 
 ## Stable command surface
