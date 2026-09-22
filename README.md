@@ -1,149 +1,46 @@
-# Omarchy Premonition
+<h1 align="center">Omarchy Premonition</h1>
 
-Omarchy Premonition is a review-first bridge from an observed error to a
-bounded candidate patch. It investigates an explicitly selected, allowlisted
-repository; validates a textual unified diff without changing the repository;
-and mutates files only after an explicit **Apply** action.
+<p align="center">
+  <a href="https://github.com/tcballard/omarchy-badges"><img src="https://raw.githubusercontent.com/tcballard/omarchy-badges/75975e5b5bf75e7ede3764bcd2950046f7abfe2c/badges/v1/omarchy-plugin.svg" alt="Built for Omarchy: Plugin" height="24"></a>
+</p>
 
-The v0.1 architecture keeps QML deliberately thin. A same-UID Rust user
-service owns repository access, the single-flight Codex executor, in-memory
-proposal bodies, cancellation, validation, and crash recovery. A versioned
-JSON CLI is the only interface used by the Omarchy bar widget and panel.
+**Turn an error into a patch you can review.**
 
-## Status
+Send an error from a repository you choose to a bounded Codex investigation. Premonition presents a candidate patch for inspection and changes files only after you explicitly choose **Apply**.
 
-Version 0.1.0 targets Omarchy Quattro at exact commit
-`981274b20af8e85c09845071ac33c6230909f119`. Machine-independent acceptance is
-complete in issues #1–#6; live Omarchy/Quickshell acceptance remains a separate
-hands-on desktop gate in issue #7. Real Quickshell rendering and the full
-deterministic interaction contract run in CI under headless wlroots.
+## Everyday use
 
-## What the workflow does
+Select an allowlisted repository and submit the error from selected text, the clipboard or stdin. Inspect the proposed diff, then apply or dismiss it. Premonition checks the patch against the repository again before applying.
 
-1. You choose an allowlisted repository and explicitly send the current
-   selection, clipboard, or stdin text.
-2. The daemon snapshots the repository and starts one read-only Codex CLI
-   investigation with hard input/output/time bounds. It starts at Low effort
-   and permits one Medium retry only after malformed or invalid candidate
-   output; runtime, cancellation, timeout, and repository failures never retry.
-3. A strict textual unified diff is parsed, path-checked, and passed through
-   `git apply --check` without changing the working tree.
-4. The panel exposes the proposal and a full-screen plain-text diff review.
-5. Only the Apply action revalidates identity, the complete generation
-   snapshot, paths, size/file ceilings, and applicability before transactional
-   publication.
+## Install
 
-## Source install for review
+Compatible Omarchy Quattro, a systemd user session, Git, Rust 1.98.0 for the source build, and a configured Codex CLI.
 
-The installer requires one explicit initial allowlist entry and refuses to
-overwrite an existing allowlist:
+Follow the [source installation guide](GUIDE.md#source-install-for-review) to build the runtime, select an initial repository and install the user service. Then review and enable **Premonition** in **Setup → Plugins**. This plugin requires its native service; clone-only installation is not enough.
 
-```bash
-./scripts/install-user.sh my-project /absolute/path/to/repository "My project"
-```
+## Update and remove
 
-It builds locked release binaries, installs the thin plugin and hardened user
-service under the current account, starts the service, and asks Omarchy to
-rescan plugins. The plugin still lands under Omarchy's normal review/enable
-boundary; enable `io.github.tcballard.premonition` in **Setup › Plugins** after
-reviewing it.
+This plugin also has a native runtime. Follow the [runtime and plugin instructions](GUIDE.md#removal) when updating or removing it. The shell plugin can be removed with `omarchy plugin remove io.github.tcballard.premonition`.
 
-### Dependencies
+## A few useful details
 
-- Omarchy Quattro compatible with the pinned contract above, including
-  Quickshell and `omarchy-shell`.
-- A systemd user session, Git, and Rust 1.98.0 for the source build.
-- An installed and configured Codex CLI. Premonition invokes it read-only with
-  the configured `gpt-5.6-sol` model; it does not integrate directly with a
-  vendor API or store provider credentials.
+**v0.1.0 source installation.** Machine-independent acceptance is complete; hands-on desktop acceptance remains separate. [Validation](docs/validation.md) · [Pinned compatibility](docs/pins.md)
 
-The plugin needs its native daemon, CLI, allowlist, and user service before it
-can function. A marketplace listing therefore requires manual setup rather than
-the standard clone-only installation path.
+A patch that applies is still a candidate for your review. Premonition does not run tests, create commits or open PRs. [Workflow and limits →](GUIDE.md#safety-boundary)
 
-To add repositories later, edit
-`~/.config/premonition/repositories.toml`, using
-[the example](examples/repositories.toml), then restart the user service:
+[Usage and development guide](GUIDE.md) · [Report a bug](https://github.com/tcballard/omarchy-premonition/issues)
 
-```bash
-systemctl --user restart premonition.service
-```
+[Licence licensed](LICENSE).
 
-## Removal
+<!-- Preserve links to sections now in the guide. -->
+<a id="dependencies"></a>
+<a id="evidence"></a>
+<a id="licence"></a>
+<a id="removal"></a>
+<a id="safety-boundary"></a>
+<a id="source-install-for-review"></a>
+<a id="stable-command-surface"></a>
+<a id="status"></a>
+<a id="what-the-workflow-does"></a>
 
-Disable the user service, remove the installed executables and plugin files,
-then ask Omarchy to rescan plugins:
-
-```bash
-systemctl --user disable --now premonition.service
-rm -f ~/.config/systemd/user/premonition.service
-rm -f ~/.local/bin/premonition ~/.local/bin/premonitiond
-rm -rf ~/.local/share/premonition
-rm -rf ~/.config/omarchy/plugins/io.github.tcballard.premonition
-systemctl --user daemon-reload
-omarchy-shell shell rescanPlugins
-```
-
-The repository allowlist and transaction state are deliberately preserved.
-After reviewing them, remove those separately if desired:
-
-```bash
-rm -rf ~/.config/premonition ~/.local/state/premonition
-```
-
-## Stable command surface
-
-Every command emits one bounded v1 JSON envelope. Status and health contain no
-source or patch bodies.
-
-```bash
-premonition status --json
-premonition repositories --json
-printf '%s' 'the observed error' | premonition submit --repo my-project --stdin --json
-premonition submit --repo my-project --selection --json
-premonition submit --repo my-project --clipboard --json
-premonition proposal show PROPOSAL_ID --json
-premonition proposal copy PROPOSAL_ID --json
-premonition proposal apply PROPOSAL_ID --json
-premonition proposal dismiss PROPOSAL_ID --json
-premonition cancel --json
-```
-
-Selection and clipboard reads are one-shot explicit actions. v0.1 does not
-monitor clipboard history.
-
-Explicit proposal review includes bounded content-free executor evidence: the
-canonical tool version and SHA-256, configured model, and the Low or Medium
-effort that produced the validated candidate. Routine status polling excludes
-that evidence as well as patch and source bodies.
-
-## Evidence
-
-- [Pinned upstream world](docs/pins.md)
-- [Architecture decision](docs/adr/0001-omarchy-first-architecture.md)
-- [Threat model](docs/threat-model.md)
-- [Deterministic headless demo](docs/demo.md)
-- [Machine-independent validation](docs/validation.md)
-- [BUILDLOG](BUILDLOG.md) and [DEVLOG](DEVLOG.md)
-
-Run the non-mutating deterministic demo with `./scripts/demo.sh`; add the
-explicit `--apply` flag to exercise the complete Apply path. Live Omarchy
-acceptance has one capture command: `./scripts/acceptance-omarchy.sh`.
-
-## Safety boundary
-
-- No repository mutation occurs before explicit Apply.
-- Only repositories in the configured allowlist are addressable.
-- Status polling never contains clipboard, source, patch, or rationale bodies.
-- The executor is read-only, bounded, cancellation-aware, and never receives
-  approval to mutate the host.
-- Premonition never runs hooks, tests, staging, commits, pushes, or PR creation.
-- A valid/applicable patch is a candidate for human review, not proof of
-  correctness.
-
-Limits and supported patch forms are intentionally conservative; see the
-threat model and ADR for the precise boundary and crash semantics.
-
-## Licence
-
-MIT. See [LICENSE](LICENSE).
+[Looking for the previous detailed sections? Open the full guide →](GUIDE.md)

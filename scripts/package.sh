@@ -50,7 +50,7 @@ install -m 0644 "$work/source/manifest.json" "$plugin/manifest.json"
 install -m 0644 "$work/source/omarchy-plugin/BarWidget.qml" "$plugin/omarchy-plugin/BarWidget.qml"
 install -m 0644 "$work/source/omarchy-plugin/PremonitionSurface.qml" "$plugin/omarchy-plugin/PremonitionSurface.qml"
 install -m 0644 "$work/source/systemd/premonition.service" "$work/bundle/share/systemd/user/premonition.service"
-install -m 0644 "$work/source/LICENSE" "$work/source/README.md" "$work/source/docs/threat-model.md" \
+install -m 0644 "$work/source/LICENSE" "$work/source/README.md" "$work/source/GUIDE.md" "$work/source/docs/threat-model.md" \
   "$work/bundle/share/doc/omarchy-premonition/"
 
 cat >"$work/bundle/BUILD-METADATA" <<EOF
